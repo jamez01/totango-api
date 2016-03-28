@@ -36,4 +36,19 @@ describe Totango::Client do
       }
       )}.not_to raise_error
   end
+
+  it 'calls on_error proc when timeout occurs' do
+    Totango.timeout=1
+    Totango.on_error do
+      raise "Timeout"
+    end
+    stub_request(:get, /sdr.totango.com\/pixel.gif/).to_return { sleep 10; return { status: 200, body: "Stubbed"}}
+    expect{Totango::Client.create({sid: 'test', account: {id: 0}})}.to raise_error("Timeout")
+  end
+
+  it 'can load SID from config file' do
+    pending("No ./config/totango.yml file. Skipping test.") unless File.exist? "./config/totango.yml"
+    expected_sid = YAML.load_file("./config/totango.yml")['sid']
+    expect(Totango::Client.new.sid).to eql(expected_sid)
+  end
 end

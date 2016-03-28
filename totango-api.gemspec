@@ -1,6 +1,6 @@
 Gem::Specification.new do |g|
   g.name = "totango-api"
-  g.version = "0.0.1"
+  g.version = "0.0.2"
   g.date = "2016-02-19"
   g.summary = "Totango-API"
   g.description = "A ruby wrapper for the totango API"

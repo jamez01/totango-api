@@ -1,14 +1,24 @@
 module Totango
+  @error_proc = nil
+  @timeout = 10
+
+  def self.timeout; return @timeout; end
+  def self.timeout=(n); return @timeout=n; end
+
+  def self.on_error(&x); @error_proc = x; end
+  def self.error_proc; @error_proc; end
 
   module Error
     class InvalidEvent < Exception;end
     class NoSID < Exception;end
+    class TotangoAPIError < Exception;end
   end
 
   class Client
-    attr :account, :user
+    attr :account, :user, :sid
     def initialize(hash={})
       @sid = hash[:sid] || hash["sid"] || nil
+      load_sid_from_file if @sid == nil
       raise Totango::Error::NoSID, "No SID provided" unless @sid
       @user_attributes = hash[:user] || hash["user"] || {}
       @account_attributes = hash[:account] || hash["account"] || {}
@@ -29,12 +39,18 @@ module Totango
       @attributes.merge(@user.attributes).merge(@account.attributes)
     end
 
-    def save 
-     if valid? then
-        @api.get '/pixel.gif/', self.attributes
-     else
-       raise Totango::Error::InvalidEvent
-     end
+    def save
+      if valid? then
+        begin
+          Timeout.timeout(Totango.timeout) { @api.get '/pixel.gif/', self.attributes }
+        rescue Timeout::Error
+          Totango.error_proc.call("Timed out getting data from Totango.") unless Totango.error_proc == nil
+        rescue Exception => e
+          Totango.error_proc.call("Totango API error #{e.message}") unless Totango.error_proc == nil
+        end
+      else
+        raise Totango::Error::InvalidEvent
+      end
     end
 
     def valid?
@@ -49,6 +65,15 @@ module Totango
       return event
     end
 
+    private
+
+    def load_sid_from_file
+      if File.exist?("./config/totango.yml")
+        @sid = YAML.load_file("./config/totango.yml")["sid"]
+      end
+
+      return nil
+    end
 
   end
 end

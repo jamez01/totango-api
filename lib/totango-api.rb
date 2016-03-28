@@ -1,6 +1,8 @@
 require 'faraday'
 require 'ostruct'
 require 'date'
+require 'yaml'
+
 
 module Totango
 end
